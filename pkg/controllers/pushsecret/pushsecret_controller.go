@@ -98,6 +98,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
 		return ctrl.Result{}, nil
 	}
+	if err != nil {
+		log.Error(err, "Error in skipping unmanaged store logic")
+	}
 
 	refreshInt := r.RequeueInterval
 	if ps.Spec.RefreshInterval != nil {
@@ -476,4 +479,3 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	}
 	return false, nil
 }
-
