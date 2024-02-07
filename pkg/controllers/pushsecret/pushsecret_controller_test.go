@@ -755,15 +755,10 @@ var _ = Describe("PushSecret controller", func() {
 			},
 		}
 
-		Expect(shouldSkipUnmanagedStore(
-			context.Background(),
-			tc.store.GetNamespace(),
-			&Reconciler{
-				Client: k8sClient,
-				ControllerClass: "default",
-			},
-			*tc.pushsecret,
-		)).To(BeTrue())
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			cond := getPushSecretCondition(ps.Status, v1alpha1.PushSecretReady)
+			return cond == nil
+		}
 	}
 	DescribeTable("When reconciling a PushSecret",
 		func(tweaks ...testTweaks) {
