@@ -32,7 +32,7 @@ We want to cover the following cases:
 The following table describes the stability level of each provider and who's responsible.
 
 | Provider                                                                                                   | Stability |                                                                                                                                                                              Maintainer |
-| ---------------------------------------------------------------------------------------------------------- | :-------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|------------------------------------------------------------------------------------------------------------| :-------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
@@ -53,6 +53,8 @@ The following table describes the stability level of each provider and who's res
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
+| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
 
 ## Provider Feature Support
 
@@ -80,6 +82,8 @@ The following table show the support for features across different providers.
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Conjur                    |              |              |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
+| Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
+| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 
