@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -40,7 +41,7 @@ const (
 func TestObjectHash(t *testing.T) {
 	tests := []struct {
 		name  string
-		input interface{}
+		input any
 		want  string
 	}{
 		{
@@ -81,7 +82,7 @@ func TestObjectHash(t *testing.T) {
 func TestIsNil(t *testing.T) {
 	tbl := []struct {
 		name string
-		val  interface{}
+		val  any
 		exp  bool
 	}{
 		{
@@ -747,7 +748,7 @@ func TestFetchValueFromMetadata(t *testing.T) {
 
 func TestGetByteValue(t *testing.T) {
 	type args struct {
-		data interface{}
+		data any
 	}
 	type testCase struct {
 		name    string
@@ -765,9 +766,9 @@ func TestGetByteValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "map of interface{}",
+			name: "map of any",
 			args: args{
-				data: map[string]interface{}{
+				data: map[string]any{
 					"key": "value",
 				},
 			},
@@ -807,9 +808,9 @@ func TestGetByteValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "slice of interface{}",
+			name: "slice of any",
 			args: args{
-				data: []interface{}{"value1", "value2"},
+				data: []any{"value1", "value2"},
 			},
 			want:    []byte(`["value1","value2"]`),
 			wantErr: false,
@@ -841,6 +842,64 @@ func TestGetByteValue(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetByteValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareStringAndByteSlices(t *testing.T) {
+	type args struct {
+		stringValue    *string
+		byteValueSlice []byte
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "same contents",
+			args: args{
+				stringValue:    aws.String("value"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "different contents",
+			args: args{
+				stringValue:    aws.String("value89"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: false,
+		}, {
+			name: "same contents with random",
+			args: args{
+				stringValue:    aws.String("value89!3#@212"),
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "check Nil",
+			args: args{
+				stringValue:    nil,
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CompareStringAndByteSlices(tt.args.stringValue, tt.args.byteValueSlice)
+			if got != tt.wantErr {
+				t.Errorf("CompareStringAndByteSlices() got = %v, want = %v", got, tt.wantErr)
+				return
 			}
 		})
 	}
