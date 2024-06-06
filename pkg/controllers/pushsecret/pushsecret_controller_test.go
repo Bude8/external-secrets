@@ -1149,7 +1149,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 							Data: []v1beta1.FakeProviderData{},
 						},
 					},
-					Controller: "default",
 				},
 			},
 			managedStore2: &v1beta1.SecretStore{
@@ -1166,7 +1165,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 							Data: []v1beta1.FakeProviderData{},
 						},
 					},
-					Controller: "default",
 				},
 			},
 			unmanagedStore1: &v1beta1.SecretStore{
@@ -1183,7 +1181,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 							Data: []v1beta1.FakeProviderData{},
 						},
 					},
-					Controller: "default",
+					Controller: "not-default",
 				},
 			},
 			unmanagedStore2: &v1beta1.SecretStore{
@@ -1200,7 +1198,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 							Data: []v1beta1.FakeProviderData{},
 						},
 					},
-					Controller: "default",
+					Controller: "not-default",
 				},
 			},
 		}

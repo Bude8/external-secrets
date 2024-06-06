@@ -543,7 +543,7 @@ func checkForUnmanagedStores(ctx context.Context, namespace string, r *Reconcile
 		}
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
-			warnMsg := fmt.Sprintf("Controller %q does not manage SecretStore %q", class, ref.Name)
+			warnMsg := fmt.Sprintf("Controller for the store %q does not match the reconciler's controller %q, so the store %q is unmanaged by the controller %q", class, r.ControllerClass, ref.Name, r.ControllerClass)
 			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, warnMsg)
 		} else {
 			validSecretStoreFound = true
