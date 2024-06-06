@@ -49,6 +49,7 @@ const (
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
 	errConvert               = "could not apply conversion strategy to keys: %v"
+	errUnmanagedStores       = "PushSecret %q has no valid stores to push to"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -94,14 +95,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
-	// skip when pointing to an unmanaged store
-	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, ps)
-	if skip {
-		log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
-		return ctrl.Result{}, nil
-	}
-	if err != nil {
-		log.Error(err, "Error in skipping unmanaged store logic")
+	allStoresAreUnmanaged, err := checkForUnmanagedStores(ctx, req.Namespace, r, ps)
+	if allStoresAreUnmanaged {
+		r.markAsFailed(err.Error(), &ps, nil)
+		return ctrl.Result{}, err
 	}
 
 	refreshInt := r.RequeueInterval
@@ -510,5 +507,52 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 			return true, nil
 		}
 	}
+	return false, nil
+}
+
+// checkForUnmanagedStores iterates over all secretStore references in the pushSecret spec,
+// fetches the store and evaluates the controllerClass property.
+// Warns for all unmanaged stores.
+// Return true if all of the storeRefs point to an unmanaged store.
+func checkForUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ps esapi.PushSecret) (bool, error) {
+	var storeList []esapi.PushSecretStoreRef
+
+	for _, ref := range ps.Spec.SecretStoreRefs {
+		if ref.Name != "" {
+			storeList = append(storeList, ref)
+		}
+	}
+
+	validSecretStoreFound := false
+	for _, ref := range storeList {
+		var store v1beta1.GenericStore
+
+		switch ref.Kind {
+		case v1beta1.SecretStoreKind:
+			store = &v1beta1.SecretStore{}
+		case v1beta1.ClusterSecretStoreKind:
+			store = &v1beta1.ClusterSecretStore{}
+			namespace = ""
+		}
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      ref.Name,
+			Namespace: namespace,
+		}, store)
+		if err != nil {
+			return true, err
+		}
+		class := store.GetSpec().Controller
+		if class != "" && class != r.ControllerClass {
+			warnMsg := fmt.Sprintf("Controller %q does not manage SecretStore %q", class, ref.Name)
+			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, warnMsg)
+		} else {
+			validSecretStoreFound = true
+		}
+	}
+
+	if !validSecretStoreFound {
+		return true, fmt.Errorf(errUnmanagedStores, ps.Name)
+	}
+
 	return false, nil
 }
