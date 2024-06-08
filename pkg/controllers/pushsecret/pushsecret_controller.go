@@ -49,7 +49,7 @@ const (
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
 	errConvert               = "could not apply conversion strategy to keys: %v"
-	errUnmanagedStores       = "PushSecret %q has no valid stores to push to"
+	errUnmanagedStores       = "PushSecret %q has no managed stores to push to"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -95,7 +95,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
-	allStoresAreUnmanaged, err := checkForUnmanagedStores(ctx, req.Namespace, r, ps)
+	allStoresAreUnmanaged, err := allStoresAreUnmanaged(ctx, req.Namespace, r, ps)
 	if allStoresAreUnmanaged {
 		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
@@ -510,11 +510,11 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	return false, nil
 }
 
-// checkForUnmanagedStores iterates over all secretStore references in the pushSecret spec,
+// allStoresAreUnmanaged iterates over all secretStore references in the pushSecret spec,
 // fetches the store and evaluates the controllerClass property.
 // Warns for all unmanaged stores.
 // Return true if all of the storeRefs point to an unmanaged store.
-func checkForUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ps esapi.PushSecret) (bool, error) {
+func allStoresAreUnmanaged(ctx context.Context, namespace string, r *Reconciler, ps esapi.PushSecret) (bool, error) {
 	var storeList []esapi.PushSecretStoreRef
 
 	for _, ref := range ps.Spec.SecretStoreRefs {
@@ -523,7 +523,7 @@ func checkForUnmanagedStores(ctx context.Context, namespace string, r *Reconcile
 		}
 	}
 
-	validSecretStoreFound := false
+	managedSecretStoreFound := false
 	for _, ref := range storeList {
 		var store v1beta1.GenericStore
 
@@ -543,14 +543,14 @@ func checkForUnmanagedStores(ctx context.Context, namespace string, r *Reconcile
 		}
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
-			warnMsg := fmt.Sprintf("Controller for the store %q does not match the reconciler's controller %q, so the store %q is unmanaged by the controller %q", class, r.ControllerClass, ref.Name, r.ControllerClass)
+			warnMsg := fmt.Sprintf("Controller for the store %q does not match the reconciler's controller %q, so the store %q is not managed by the controller %q", class, r.ControllerClass, ref.Name, r.ControllerClass)
 			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, warnMsg)
 		} else {
-			validSecretStoreFound = true
+			managedSecretStoreFound = true
 		}
 	}
 
-	if !validSecretStoreFound {
+	if !managedSecretStoreFound {
 		return true, fmt.Errorf(errUnmanagedStores, ps.Name)
 	}
 
