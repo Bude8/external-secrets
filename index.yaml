@@ -2,6 +2,25 @@ apiVersion: v1
 entries:
   external-secrets:
   - apiVersion: v2
+    appVersion: v0.9.19
+    created: "2024-06-08T09:57:18.705826724Z"
+    description: External secret management for Kubernetes
+    digest: 388b609bb0dfdf774569f2dfe82f30be429eb7ef4c02c9f019b1c9498f5360e9
+    home: https://github.com/external-secrets/external-secrets
+    icon: https://raw.githubusercontent.com/external-secrets/external-secrets/main/assets/eso-logo-large.png
+    keywords:
+    - kubernetes-external-secrets
+    - secrets
+    kubeVersion: '>= 1.19.0-0'
+    maintainers:
+    - email: kellinmcavoy@gmail.com
+      name: mcavoyk
+    name: external-secrets
+    type: application
+    urls:
+    - https://github.com/Bude8/external-secrets/releases/download/helm-chart-0.9.19/external-secrets-0.9.19.tgz
+    version: 0.9.19
+  - apiVersion: v2
     appVersion: v0.9.17
     created: "2024-05-07T13:40:40.288480538Z"
     description: External secret management for Kubernetes
@@ -39,4 +58,4 @@ entries:
     urls:
     - https://github.com/Bude8/external-secrets/releases/download/helm-chart-0.9.16/external-secrets-0.9.16.tgz
     version: 0.9.16
-generated: "2024-05-07T13:40:40.2884921Z"
+generated: "2024-06-08T09:57:18.705839728Z"
