@@ -49,6 +49,7 @@ const (
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
 	errConvert               = "could not apply conversion strategy to keys: %v"
+	errUnmanagedStores       = "PushSecret %q has no managed stores to push to"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -154,6 +155,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores, ps)
+	if err != nil {
+		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
@@ -464,4 +471,41 @@ func statusRef(ref v1beta1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
+}
+
+// removeUnmanagedStores iterates over all SecretStore references and evaluates the controlerClass property.
+// Warns for all unmanaged stores.
+// Returns a map containing only managed stores.
+func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]v1beta1.GenericStore, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
+	for ref := range ss {
+		var store v1beta1.GenericStore
+		switch ref.Kind {
+		case v1beta1.SecretStoreKind:
+			store = &v1beta1.SecretStore{}
+		case v1beta1.ClusterSecretStoreKind:
+			store = &v1beta1.ClusterSecretStore{}
+			namespace = ""
+		}
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      ref.Name,
+			Namespace: namespace,
+		}, store)
+
+		if err != nil {
+			return ss, err
+		}
+
+		class := store.GetSpec().Controller
+		if class != "" && class != r.ControllerClass {
+			warnMsg := fmt.Sprintf("Controller for the store %q does not match the reconciler's controller %q, so the store %q is not managed by the controller %q", class, r.ControllerClass, ref.Name, r.ControllerClass)
+			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, warnMsg)
+			delete(ss, ref)
+		}
+	}
+
+	if len(ss) == 0 {
+		return ss, fmt.Errorf(errUnmanagedStores, ps.Name)
+	}
+
+	return ss, nil
 }
