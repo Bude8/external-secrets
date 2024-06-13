@@ -158,10 +158,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores, ps)
+	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores)
 	if err != nil {
 		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
+	}
+	// if no stores are managed by this controller
+	if len(secretStores) == 0 {
+		return ctrl.Result{}, nil
 	}
 
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
@@ -473,10 +477,9 @@ func statusRef(ref v1beta1.PushSecretData) string {
 	return ref.GetRemoteKey()
 }
 
-// removeUnmanagedStores iterates over all SecretStore references and evaluates the controlerClass property.
-// Warns for all unmanaged stores.
+// removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
 // Returns a map containing only managed stores.
-func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]v1beta1.GenericStore, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
+func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]v1beta1.GenericStore) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
 	for ref := range ss {
 		var store v1beta1.GenericStore
 		switch ref.Kind {
@@ -497,15 +500,8 @@ func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler,
 
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
-			warnMsg := fmt.Sprintf("Controller for the store %q does not match the reconciler's controller %q, so the store %q is not managed by the controller %q", class, r.ControllerClass, ref.Name, r.ControllerClass)
-			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, warnMsg)
 			delete(ss, ref)
 		}
 	}
-
-	if len(ss) == 0 {
-		return ss, fmt.Errorf(errUnmanagedStores, ps.Name)
-	}
-
 	return ss, nil
 }
