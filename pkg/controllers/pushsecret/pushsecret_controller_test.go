@@ -985,7 +985,7 @@ var _ = Describe("PushSecret controller", func() {
 			if tc.pushsecret != nil {
 				Expect(k8sClient.Create(ctx, tc.pushsecret)).Should(Succeed())
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(2 * time.Second) // prevents race conditions during tests causing failures
 			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
 			createdPS := &v1alpha1.PushSecret{}
 			By("checking the pushSecret condition")
@@ -1232,7 +1232,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 		}
 	}
 
-	noManagedStoresFails := func(tc *testCase) {
+	skipUnmanagedStores := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
@@ -1324,7 +1324,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 			if tc.pushsecret != nil {
 				Expect(k8sClient.Create(ctx, tc.pushsecret)).Should(Succeed())
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(2 * time.Second) // prevents race conditions during tests causing failures
 			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
 			createdPS := &v1alpha1.PushSecret{}
 			By("checking the pushSecret condition")
@@ -1338,7 +1338,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 			// this must be optional so we can test faulty es configuration
 		},
 		Entry("should sync successfully if there are multiple managed stores", multipleManagedStoresSyncsSuccessfully),
-		Entry("should fail if there are no managed stores", noManagedStoresFails),
-		Entry("should warn for unmanaged stores and sync managed stores", warnUnmanagedStoresAndSyncManagedStores),
+		Entry("should skip unmanaged stores", skipUnmanagedStores),
+		Entry("should skip unmanaged stores and sync managed stores", warnUnmanagedStoresAndSyncManagedStores),
 	)
 })
