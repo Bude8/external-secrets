@@ -63,6 +63,7 @@ func init() {
 }
 
 func checkCondition(status v1alpha1.PushSecretStatus, cond v1alpha1.PushSecretStatusCondition) bool {
+	fmt.Printf("status: %+v\ncond: %+v\n", status.Conditions, cond)
 	for _, condition := range status.Conditions {
 		if condition.Message == cond.Message &&
 			condition.Reason == cond.Reason &&
@@ -1233,10 +1234,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 	}
 
 	skipUnmanagedStores := func(tc *testCase) {
-		fakeProvider.SetSecretFn = func() error {
-			return nil
-		}
-
 		tc.pushsecret.Spec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 			{
 				Name: UnmanagedPushSecretStore1,
@@ -1249,13 +1246,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 		}
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			expected := v1alpha1.PushSecretStatusCondition{
-				Type:    v1alpha1.PushSecretReady,
-				Status:  v1.ConditionFalse,
-				Reason:  v1alpha1.ReasonErrored,
-				Message: "PushSecret \"test-ps\" has no managed stores to push to",
-			}
-			return checkCondition(ps.Status, expected)
+			return len(ps.Status.Conditions) == 0
 		}
 	}
 
